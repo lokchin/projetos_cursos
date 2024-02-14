@@ -40,7 +40,7 @@ def registro():
 
 
 
-@bp.route('login', methods=('GET', 'POST'))
+@bp.route('/login', methods=('GET', 'POST'))
 def login():
     if request.method == 'POST':
         nome_usuario = request.form['nome_usuario']
@@ -62,5 +62,33 @@ def login():
         flash(error)
 
     return render_template('auth/login.html')
-    
-    
+
+
+
+
+@bp.before_app_request
+def usuario_logado():
+    usuario_id = session.get('usuario_id')
+
+    if usuario_id is None:
+        g.usuario = None
+    else:
+        g.usuario = get_db().execute('SELECT * FROM usuario WHERE id = ?', (usuario_id,)).fetchone
+
+
+
+
+@bp.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+
+
+def requisitos_login(view):
+    @functools.wraps(view)
+    def view_wrapped(**kwargs):
+        if g.usuario is None:
+            return redirect(url_for('auth.login'))
+        return view(**kwargs)
+    return view_wrapped
